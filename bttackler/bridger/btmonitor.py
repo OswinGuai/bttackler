@@ -12,6 +12,7 @@ class BTMonitor:
     def __init__(self, max_epoch, quick_calc, intermediate_default, final_default):
         logger.info("monitor hello!")
 
+        assert max_epoch > 1, "max_epoch should be greater than 1! "
         self.max_epoch = max_epoch
         self.quick_calc = quick_calc
         self.intermediate_default = intermediate_default

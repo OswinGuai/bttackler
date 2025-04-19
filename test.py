@@ -2,6 +2,9 @@ from bttackler.bridger.optuna_pruner import BTTPruner
 import optuna
 import random
 
+import os
+import sys
+import time
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -119,7 +122,7 @@ class CNN(nn.Module):
         return r * r * params["conv4_k_num"]
 
 
-def train(dataloader, model, loss_fn, optimizer):
+def train(manager, dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
     model.train()
@@ -156,18 +159,18 @@ def standard_test(dataloader, model, loss_fn):
     return loss, acc
 
 
-def test(dataloader, model, loss_fn):
+def test(manager, dataloader, model, loss_fn):
     loss, acc = standard_test(dataloader, model, loss_fn)
     manager.collect_after_testing(acc, loss)
     return acc, loss
 
 
-def validate(dataloader, model, loss_fn):
+def validate(manager, dataloader, model, loss_fn):
     loss, acc = standard_test(dataloader, model, loss_fn)
     return acc, loss
 
 
-def make_trial(manager, params, trial, max_epoch):
+def make_trial(manager, params, study_name, trial, max_epoch):
     print("params: ", params)
     train_kwargs = {'batch_size': params["batch_size"]}
     test_kwargs = {'batch_size': params["batch_size"]}
@@ -211,21 +214,21 @@ def make_trial(manager, params, trial, max_epoch):
         print(f"Epoch {t + 1}\n-------------------------------")
         manager.refresh_before_epoch_start()
 
-        train_acc, train_loss = train(train_dataloader, model, loss_fn, optimizer)
+        train_acc, train_loss = train(manager, train_dataloader, model, loss_fn, optimizer)
         manager.collect_after_training(train_acc, train_loss)
-        valid_acc, valid_loss = validate(validate_dataloader, model, loss_fn)
+        valid_acc, valid_loss = validate(manager, validate_dataloader, model, loss_fn)
         manager.collect_after_validating(valid_acc, valid_loss)
-        manager.report_intermediate_result(trial.number)
+        manager.report_intermediate_result(study_name, trial.number)
         scheduler.step()
 
         if trial.should_prune():
-            valid_acc, _ = validate(validate_dataloader, model, loss_fn)
-            manager.report_final_result(trial.number)
+            valid_acc, _ = validate(manager, validate_dataloader, model, loss_fn)
+            manager.final_result(trial.number)
             print(f"pruning!!! ")
             raise optuna.TrialPruned()
     print(f"Finish one trial.")
-    valid_acc, _ = validate(validate_dataloader, model, loss_fn)
-    manager.report_final_result(trial.number)
+    valid_acc, _ = validate(manager, validate_dataloader, model, loss_fn)
+    manager.report_final_result(study_name, trial.number)
     return valid_acc
 
 
@@ -248,19 +251,31 @@ if __name__ == '__main__':
         'wd_nmg': 6
     }
     max_epoch = 2
-      
+    N_TRIALS = 2
+
     pruner = BTTPruner(
         max_epoch=max_epoch,
         quick_calc=True,
-        symptom_name_list=["accuracy", "loss"],
+        symptom_name_list=["VG","EG","DR","SC","HO","NMG","OF"],
         cmp_percent=0.1,
         min_cmp_num=5,
         diagnose=diagnose,
         seed=1,
     )
-    study = optuna.create_study(storage="sqlite:///db.sqlite3", direction="minimize", sampler=sampler, pruner=pruner)
-    study.enqueue_trial({"T0": 1.0, "alpha": 2.0, "patience": 50})  # default params
-    manager = BTWatcher(max_epoch=max_epoch, quick_calc=True, intermediate_default='val_acc', final_default='val_acc', seed=seed)
+
+    if len(sys.argv) > 1:
+        study_name = sys.argv[1]
+        storage = sys.argv[2]
+        direction = sys.argv[3]
+        print("Create Study %s" % study_name)
+    else:
+        study_name = "test"
+        storage = "sqlite:///test.sqlite3"
+        direction = "minimize"
+        print("Load Study %s" % study_name)
+
+    study = optuna.create_study(study_name=study_name, storage=storage, direction="minimize", sampler=sampler, pruner=pruner, load_if_exists=True)
+
     def objective(trial):
         global count
         count += 1
@@ -280,11 +295,14 @@ if __name__ == '__main__':
             "batch_norm": trial.suggest_categorical("batch_norm", [0, 1]),
             "drop_rate": trial.suggest_uniform("drop_rate", 0.0, 0.9)
         }
-        return make_trial(manager, params, trial, max_epoch)
+        manager = BTWatcher(max_epoch=max_epoch, quick_calc=True, intermediate_default='val_acc', final_default='val_acc', seed=seed)
+        return make_trial(manager, params, study_name, trial, max_epoch)
 
-    N_TRIALS = 2
     count = 0
+    start_time = time.time()
     study.optimize(objective, n_trials=N_TRIALS)
+    end_time = time.time()
+    print("Cost time: %.3f seconds." % (end_time - start_time))
     print(f"The number of trials: {len(study.trials)}")
     print(f"Best value: {study.best_value} (params: {study.best_params})")
 

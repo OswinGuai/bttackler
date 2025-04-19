@@ -19,6 +19,6 @@ class BTTPruner(BasePruner):
         self.etr = MyAssessor(max_epoch, quick_calc, symptom_name_list, cmp_percent, min_cmp_num, diagnose, seed)
 
     def prune(self, study: "optuna.study.Study", trial: "optuna.trial.FrozenTrial") -> bool:
-        early_stop = self.etr.assess_trial(trial.number, study.study_name)
+        early_stop = self.etr.assess_trial(study.study_name, trial.number)
         return early_stop
 

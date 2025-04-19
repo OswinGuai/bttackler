@@ -41,12 +41,12 @@ class MyAssessor:
 
         self.has_nan_inf = None
 
-    def assess_trial(self, trial_id, study_name):
+    def assess_trial(self, study_name, trial_id):
         self.trial_id = trial_id
         self.has_nan_inf = False
 
         self.info_dict = self.get_default_info_dict()
-        self.receive_monitor_result(trial_id, study_name)
+        self.receive_monitor_result(study_name, trial_id)
 
         self.diagnose_symptom()
         
@@ -95,11 +95,10 @@ class MyAssessor:
         self.record_global_metric()
         return early_stop
 
-    def receive_monitor_result(self, trial_id, study_name):
+    def receive_monitor_result(self, study_name,  trial_id):
         # import pdb
         # pdb.set_trace()
-        monitor_info = BTMessenger().read_monitor_info(trial_id)
-        assessor_info = BTMessenger().read_assessor_info(trial_id)
+        monitor_info = BTMessenger().read_monitor_info(study_name, trial_id)
         def get_metric_array(p, s):
             idx = self.metric_prefix_list.index(p) * len(self.metric_suffix_list) + self.metric_suffix_list.index(s)
             return self.module_metric_2da[:, idx].flatten()
