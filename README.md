@@ -4,26 +4,19 @@ A Diagnosis-based Framework for Efficient Deep Learning Hyperparameter Optimizat
 ## Install
 *Based on Python 3.10*
 ```
-git clone git@github.com:thuml/BTTackler.git
-cd BTTackler
-pip install -r requirements.txt
-pip install nni[all]==2.10
+git clone git@github.com:OswinGuai/bttackler.git
+cd bttackler
 export PYTHONPATH=.:$PYTHONPATH
+pip install torch, scipy, torchvision, optuna
 ```
 
 ## Run Cases
 ```
-bash cases/example_run_case.sh
+python test.py
 ```
-or just,
+or for multiprocessing,
 ```
-cd cases
-# random
-python run_case.py cifar10cnn random
-# bttackler-random
-python run_case.py cifar10cnn random_bttackler
-# all for cifar10cnn
-python run_case.py cifar10cnn all
+bash cifar10cnn_parallel.sh
 ```
 
 ## TODO
