@@ -250,8 +250,8 @@ if __name__ == '__main__':
         'wd_ho': 6,
         'wd_nmg': 6
     }
-    max_epoch = 2
-    N_TRIALS = 2
+    max_epoch = 20
+    N_TRIALS = 100
 
     pruner = BTTPruner(
         max_epoch=max_epoch,
