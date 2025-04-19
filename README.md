@@ -7,7 +7,7 @@ A Diagnosis-based Framework for Efficient Deep Learning Hyperparameter Optimizat
 git clone git@github.com:OswinGuai/bttackler.git
 cd bttackler
 export PYTHONPATH=.:$PYTHONPATH
-pip install torch, scipy, torchvision, optuna
+pip install torch scipy torchvision optuna
 ```
 
 ## Run Cases
