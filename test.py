@@ -223,7 +223,7 @@ def make_trial(manager, params, study_name, trial, max_epoch):
 
         if trial.should_prune():
             valid_acc, _ = validate(manager, validate_dataloader, model, loss_fn)
-            manager.final_result(trial.number)
+            manager.report_final_result(study_name, trial.number)
             print(f"pruning!!! ")
             raise optuna.TrialPruned()
     print(f"Finish one trial.")
